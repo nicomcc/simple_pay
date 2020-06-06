@@ -4,11 +4,19 @@
   "description": "Payment System",
   "main": "index.js",
   "scripts": {
+    "lint": "./node_modules/.bin/eslint *.js",
+    "lintfix": "./node_modules/.bin/eslint *.js --fix",
+    "prepush": "npm run lint",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Nicolas Mocaiber",
   "license": "ISC",
   "devDependencies": {
-    "eslint": "^7.2.0"
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-plugin-import": "^2.20.2"
+  },
+  "dependencies": {
+    "husky": "^4.2.5"
   }
 }
