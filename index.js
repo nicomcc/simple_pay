@@ -1,7 +1,11 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const _ = require('lodash');
+const session = require('express-session');
+const passport = require('passport');
+const passportLocalMongoose = require('passport-local-mongoose');
 
 const User = require(__dirname + '/src/userschema');
 
@@ -10,10 +14,23 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+app.use(session({
+  secret: process.env.SECRET,
+  resave: false,
+  saveUninitialized: false,
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
 mongoose.connect('mongodb://localhost:27017/simplepayDB', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
+mongoose.set('useCreateIndex', true);
+
+passport.use(User.createStrategy());
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 app.get('/', (req, res) => {
   res.render('home');
@@ -30,7 +47,7 @@ app.post('/login', (req, res) => {
     if (!foundUser) {
       res.render('login', { loginError: 'User not found' });
     } else if (foundUser.password === pass) {
-      res.render('secrets');
+      res.render('secrets', { firstName: foundUser.name });
     } else {
       res.render('login', { loginError: 'Password does not match' });
     }
@@ -53,19 +70,16 @@ app.post('/register', (req, res) => {
         password: req.body.password,
       });
       newUser.save((error) => {
-        if (error) console.log(err);
-        else res.render('secrets');
+        if (error) res.render('register', { registerError: 'Empty Field' });
+        else res.render('secrets', { firstName: newUser.name });
       });
     }
   });
 });
 
 app.get('/submit', (req, res) => {
-  res.render('submit');
+  res.render('submit', { firstName: '' });
 });
 
-app.get('/secrets', (req, res) => {
-  res.render('secrets');
-});
 
 app.listen(3000, () => { console.log('Server started on port 3000'); });
