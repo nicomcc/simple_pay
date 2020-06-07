@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const _ = require('lodash');
 
 const User = require(__dirname + '/src/userschema');
 
@@ -46,8 +47,8 @@ app.post('/register', (req, res) => {
       res.render('register', { registerError: 'E-mail already registered!' });
     } else {
       const newUser = new User({
-        name: req.body.username,
-        lastName: req.body.lastname,
+        name: _.capitalize(req.body.username),
+        lastName: _.capitalize(req.body.lastname),
         email: req.body.usermail,
         password: req.body.password,
       });
