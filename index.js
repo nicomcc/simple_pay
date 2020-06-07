@@ -19,7 +19,21 @@ app.get('/', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-  res.render('login');
+  res.render('login', { loginError: '' });
+});
+
+app.post('/login', (req, res) => {
+  const user = req.body.usermail;
+  const pass = req.body.password;
+  User.findOne({ email: user }, (err, foundUser) => {
+    if (!foundUser) {
+      res.render('login', { loginError: 'User not found' });
+    } else if (foundUser.password === pass) {
+      res.render('secrets');
+    } else {
+      res.render('login', { loginError: 'Password does not match' });
+    }
+  });
 });
 
 app.get('/register', (req, res) => {
@@ -53,6 +67,4 @@ app.get('/secrets', (req, res) => {
   res.render('secrets');
 });
 
-app.listen(3000, () => {
-  console.log('Server started on port 3000');
-});
+app.listen(3000, () => { console.log('Server started on port 3000'); });
