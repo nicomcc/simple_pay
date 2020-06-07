@@ -19,6 +19,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
 }));
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -33,7 +34,19 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 app.get('/', (req, res) => {
-  res.render('home');
+  if (req.isAuthenticated()) {
+    res.render('secrets', { firstName: 'test' });
+  } else {
+    res.render('home');
+  }
+});
+
+app.get('/secrets', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render('secrets', { firstName: 'test' });
+  } else {
+    res.redirect('/login');
+  }
 });
 
 app.get('/login', (req, res) => {
@@ -41,17 +54,22 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const user = req.body.usermail;
-  const pass = req.body.password;
-  User.findOne({ email: user }, (err, foundUser) => {
-    if (!foundUser) {
-      res.render('login', { loginError: 'User not found' });
-    } else if (foundUser.password === pass) {
-      res.render('secrets', { firstName: foundUser.name });
-    } else {
-      res.render('login', { loginError: 'Password does not match' });
-    }
+  const newuser = new User({
+    username: req.body.username,
+    password: req.body.password,
   });
+  passport.authenticate('local', (err, user) => {
+    if (!user) { return res.render('login', { loginError: 'Invalid Credentials' }); }
+    req.logIn(newuser, (error) => {
+      if (error) { return res.render('login', { loginError: error }); }
+      return res.render('secrets', { firstName: user.firstname });
+    });
+  })(req, res);
+});
+
+app.get('/logout', (req, res) => {
+  req.logout();
+  res.redirect('/');
 });
 
 app.get('/register', (req, res) => {
@@ -59,19 +77,16 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', (req, res) => {
-  User.find({ email: req.body.usermail }, (err, users) => {
-    if (users.length > 0) {
-      res.render('register', { registerError: 'E-mail already registered!' });
+  const firstname = _.capitalize(req.body.firstname);
+  const lastname = _.capitalize(req.body.lastname);
+  const { username } = req.body;
+
+  User.register({ username, firstname, lastname }, req.body.password, (err, user) => {
+    if (err) {
+      res.render('register', { registerError: err });
     } else {
-      const newUser = new User({
-        name: _.capitalize(req.body.username),
-        lastName: _.capitalize(req.body.lastname),
-        email: req.body.usermail,
-        password: req.body.password,
-      });
-      newUser.save((error) => {
-        if (error) res.render('register', { registerError: 'Empty Field' });
-        else res.render('secrets', { firstName: newUser.name });
+      passport.authenticate('local')(req, res, () => {
+        res.render('secrets', { firstName: user.firstname });
       });
     }
   });
