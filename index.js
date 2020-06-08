@@ -8,6 +8,8 @@ const passport = require('passport');
 // const passportLocalMongoose = require('passport-local-mongoose');
 
 const User = require(__dirname + '/src/userschema');
+const transactionSchema = require(__dirname + '/src/transactionSchema')
+const date = require(__dirname + '/src/date.js');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -53,7 +55,44 @@ app.get('/wallet', (req, res) => {
 });
 
 app.get('/payment', (req, res) => {
-  res.render('payment');
+  res.render('payment', { paymentError: '' });
+});
+
+app.post('/payment', (req, res) => {
+  const firstname = _.capitalize(req.body.firstname);
+  const lastname = _.capitalize(req.body.lastname);
+  const {
+    username, transdescription, amount,
+    inlineRadioOptions, holdername, creditnumber, ccexpmo, ccexpyr, cvcnumber,
+  } = req.body;
+
+  User.findOne({ username }, (err, foundUser) => {
+    if (err) res.render('payment', { paymentError: err });
+    else if (!foundUser) {
+      res.render('payment', { paymentError: 'Username not found!' });
+    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
+      foundUser.transactions.push({
+        cardholder: holdername,
+        description: transdescription,
+        cvc: cvcnumber,
+        amount,
+        paydate: date.getDate(),
+        expiredate: `${ccexpmo}/${ccexpyr}`,
+        cardnumberfinal: creditnumber.substring(creditnumber.length - 4, creditnumber.length),
+        paytype: (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card',
+      });
+      foundUser.save((error) => {
+        if (!error) res.redirect('/paymentsuccesfull');
+        else res.render('payment', { paymentError: error });
+      });
+    } else {
+      res.render('payment', { paymentError: 'User data does not match!' });
+    }
+  });
+});
+
+app.get('/paymentsuccesfull', (req, res) => {
+  res.render('paymentsuccesfull');
 });
 
 app.get('/transfer', (req, res) => {

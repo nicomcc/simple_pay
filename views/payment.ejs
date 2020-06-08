@@ -4,6 +4,13 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <link rel="stylesheet" href="css/styles.css">
 
+
+  <% if (paymentError != '') {%>
+  <p class="alert alert-danger">
+    <%= paymentError %>
+  </p>
+  <% } %>
+
 <div class="container mt-5">
 
   <div class="row">
@@ -12,7 +19,7 @@
         <div class="card-body">
           <h2 class="text-center">Contact Info</h2>
           <!-- Makes POST request to /login route -->
-          <form action="/transfer" method="POST">
+          <form action="/payment" method="POST">
             <div class="form-group">
               <label for="username">Username: </label>
               <input type="email" required="required" class="form-control" name="username" placeholder="Contact's e-mail">
@@ -34,7 +41,7 @@
               <div class="form-inline">
                 <div class="input-group">
                   <div class="input-group-prepend"><span class="input-group-text">R$</span></div>
-                  <input type="number" class="form-control text-right" step="0.01" min="0">
+                  <input type="number" class="form-control text-right" step="0.01" min="0" required="required" name="amount">
                 </div>
               </div>
 
@@ -51,28 +58,28 @@
               <label class="col-sm-4">Card Payment: </label>
               <div class="col-sm-8">
                 <div class="form-check form-check-inline float-right">
-                  <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1">
+                  <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="credit" required="required">
                   <label class="form-check-label" for="inlineRadio1">Credit Card</label>
                 </div>
                 <div class="form-check form-check-inline float-right">
-                  <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
+                  <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="debit" required="required" checked="checked">
                   <label class="form-check-label" for="inlineRadio2">Debit Card</label>
                 </div>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="cc_name">Card Holder's Name </label>
+              <label for="holdername">Card Holder's Name </label>
               <input type="text" class="form-control" pattern="\w+ \w+.*" required="required" name="holdername">
             </div>
             <div class="form-group">
               <label for="username">Card Number </label>
-              <input type="text" class="form-control" autocomplete="off" maxlength="20" pattern="\d{16}" title="Credit card number" required="">
+              <input type="text" class="form-control" autocomplete="off" maxlength="20" pattern="\d{16}" name="creditnumber" required="required">
             </div>
             <div class="form-group row">
               <label class="col-md-12">Card Exp. Date</label>
               <div class="col-md-6">
-                <select class="form-control input-sm" style="width: 10px" name="cc_exp_mo" size="0">
+                <select class="form-control input-sm" style="width: 10px" name="ccexpmo" size="0">
                   <option value="01">01</option>
                   <option value="02">02</option>
                   <option value="03">03</option>
@@ -89,7 +96,7 @@
               </div>
               <div class="col-md-4">
                 <div class="form-group">
-                  <select class="form-control" name="cc_exp_yr" size="0">
+                  <select class="form-control" name="ccexpyr" size="0">
                     <option>2020</option>
                     <option>2021</option>
                     <option>2022</option>
@@ -106,7 +113,7 @@
               <div class="col-md-5">
 
                 <label>Security Code</label>
-                <input type="text" class="form-control" autocomplete="off" maxlength="3" pattern="\d{3}" title="Three digits at back of your card" required="" placeholder="CVC">
+                <input type="text" class="form-control" autocomplete="off" maxlength="3" pattern="\d{3}" title="Three digits at back of your card" name="cvcnumber" required="required" placeholder="CVC">
               </div>
             </div>
             <hr />

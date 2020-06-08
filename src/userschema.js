@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const passportLocalMongoose = require('passport-local-mongoose');
+const transactionSchema = require(__dirname + '/transactionSchema')
+
 
 const userSchema = new mongoose.Schema({
   firstname: {
@@ -19,8 +21,9 @@ const userSchema = new mongoose.Schema({
   },
   wallet: {
     type: Number,
-    default: 1.52,
+    default: 0,
   },
+  transactions: [transactionSchema],
 });
 
 userSchema.plugin(passportLocalMongoose);
