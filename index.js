@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const _ = require('lodash');
 const session = require('express-session');
 const passport = require('passport');
-const passportLocalMongoose = require('passport-local-mongoose');
+// const passportLocalMongoose = require('passport-local-mongoose');
 
 const User = require(__dirname + '/src/userschema');
 
