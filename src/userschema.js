@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
   },
+  wallet: {
+    type: Number,
+    default: 1.52,
+  },
 });
 
 userSchema.plugin(passportLocalMongoose);

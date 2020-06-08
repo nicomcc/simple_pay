@@ -14,3 +14,9 @@ body {
   color: #fff;
   background-color: #000;
 }
+
+.form-control{min-width:300px;}
+
+.walletjumbo{
+  padding-bottom: 0
+}

@@ -1,0 +1,93 @@
+<%- include('partials/headerlogin') %>
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+
+<div class="container mt-5">
+  <div class="col-md-8 offset-md-1">
+    <span class="anchor" id="formPayment"></span>
+    <hr class="my-5">
+
+    <!-- form card cc payment -->
+    <div class="card card-outline-secondary">
+      <div class="card-body">
+        <h3 class="text-center">Credit Card Payment</h3>
+        <hr>
+
+        <form action="/transaction" method="POST">
+          <div class="form-group">
+            <label for="cc_name">Card Holder's Name</label>
+            <input type="text" class="form-control" id="cc_name" pattern="\w+ \w+.*" title="First and last name" required="required">
+          </div>
+          <div class="form-group">
+            <label>Card Number</label>
+            <input type="text" class="form-control" autocomplete="off" maxlength="20" pattern="\d{16}" title="Credit card number" required="">
+          </div>
+          <div class="form-group row">
+            <label class="col-md-12">Card Exp. Date</label>
+            <div class="col-md-6">
+              <select class="form-control input-sm" style="width: 10px" name="cc_exp_mo" size="0">
+                <option value="01">01</option>
+                <option value="02">02</option>
+                <option value="03">03</option>
+                <option value="04">04</option>
+                <option value="05">05</option>
+                <option value="06">06</option>
+                <option value="07">07</option>
+                <option value="08">08</option>
+                <option value="09">09</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <select class="form-control" name="cc_exp_yr" size="0">
+                  <option>2020</option>
+                  <option>2021</option>
+                  <option>2022</option>
+                  <option>2023</option>
+                  <option>2024</option>
+                  <option>2025</option>
+                  <option>2026</option>
+                  <option>2027</option>
+                  <option>2028</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+          <div class="form-group row">
+            <div class="col-md-5">
+              <label>Security Code</label>
+              <input type="text" class="form-control" autocomplete="off" maxlength="3" pattern="\d{3}" title="Three digits at back of your card" required="" placeholder="CVC">
+            </div>
+          </div>
+          <div class="row">
+            <label class="col-md-12">Amount</label>
+          </div>
+          <div class="form-inline">
+            <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text">R$</span></div>
+              <input type="number" class="form-control text-right" step="0.01" min="0">
+          </div>
+          <hr>
+          <div class="form-group row">
+            <div class="col-md-6">
+              <button type="reset" class="btn btn-default btn-lg btn-block">Cancel</button>
+            </div>
+            <div class="col-md-6">
+              <button type="submit" class="btn btn-dark btn-lg btn-block">Submit</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!-- /form card cc payment -->
+
+
+  </div>
+
+  <%- include('partials/footer') %>

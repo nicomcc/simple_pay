@@ -35,15 +35,42 @@ passport.deserializeUser(User.deserializeUser());
 
 app.get('/', (req, res) => {
   if (req.isAuthenticated()) {
-    res.render('secrets', { firstName: 'test' });
+    res.redirect('wallet');
   } else {
     res.render('home');
   }
 });
 
-app.get('/secrets', (req, res) => {
+app.get('/wallet', (req, res) => {
   if (req.isAuthenticated()) {
-    res.render('secrets', { firstName: 'test' });
+    res.render('wallet', {
+      firstName: req.user.firstname,
+      walletcash: req.user.wallet,
+    });
+  } else {
+    res.redirect('/login');
+  }
+});
+
+app.get('/deposit', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render('deposit', { firstName: req.user.firstname });
+  } else {
+    res.redirect('/login');
+  }
+});
+
+app.get('/transfer', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render('transfer', { firstName: req.user.firstname });
+  } else {
+    res.redirect('/login');
+  }
+});
+
+app.get('/transaction', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render('transaction', { firstName: req.user.firstname });
   } else {
     res.redirect('/login');
   }
@@ -62,7 +89,7 @@ app.post('/login', (req, res) => {
     if (!user) { return res.render('login', { loginError: 'Invalid Credentials' }); }
     req.logIn(newuser, (error) => {
       if (error) { return res.render('login', { loginError: error }); }
-      return res.render('secrets', { firstName: user.firstname });
+      return res.redirect('wallet');
     });
   })(req, res);
 });
@@ -86,15 +113,10 @@ app.post('/register', (req, res) => {
       res.render('register', { registerError: err });
     } else {
       passport.authenticate('local')(req, res, () => {
-        res.render('secrets', { firstName: user.firstname });
+        res.redirect('wallet');
       });
     }
   });
 });
-
-app.get('/submit', (req, res) => {
-  res.render('submit', { firstName: '' });
-});
-
 
 app.listen(3000, () => { console.log('Server started on port 3000'); });
