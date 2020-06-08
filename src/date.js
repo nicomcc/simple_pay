@@ -13,3 +13,20 @@ exports.getDate = () => {
 
   return `${dd}/${mm}/${yyyy}`;
 };
+
+function parseDMY(s) {
+  const b = s.split(/\D/);
+  return new Date(b[2], b[1] - 1, b[0]);
+}
+
+function formatDMY(d) {
+  function z(n) { return (n < 10 ? '0' : '') + n; }
+  if (isNaN(+d)) return d.toString();
+  return `${z(d.getDate())}/${ z(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+exports.addDays = (s, days) => {
+  const d = parseDMY(s);
+  d.setDate(d.getDate() + Number(days));
+  return formatDMY(d);
+};

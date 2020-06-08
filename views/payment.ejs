@@ -22,19 +22,19 @@
           <form action="/payment" method="POST">
             <div class="form-group">
               <label for="username">Username: </label>
-              <input type="email" required="required" class="form-control" name="username" placeholder="Contact's e-mail">
+              <input type="email" required="required" class="form-control" name="username" placeholder="Contact's e-mail" maxlength = "30">
             </div>
             <div class="form-group">
               <label for="firstname">Name: </label>
-              <input type="name" required="required" class="form-control" name="firstname" placeholder="Contact's first name">
+              <input type="name" required="required" class="form-control" name="firstname" placeholder="Contact's first name" maxlength = "20">
             </div>
             <div class="form-group">
               <label for="lastname">Last Name: </label>
-              <input type="name" required="required" class="form-control" name="lastname" placeholder="Contact's last name">
+              <input type="name" required="required" class="form-control" name="lastname" placeholder="Contact's last name" maxlength = "20">
             </div>
             <div class="form-group">
               <label for="transdescription">Transaction Description: </label>
-              <input type="name" required="required" class="form-control" name="transdescription" placeholder="Payment Description">
+              <input type="name" required="required" class="form-control" name="transdescription" placeholder="Payment Description" maxlength = "60">
             </div>
             <div class="form-group">
               <label for="amount">Amount: </label>

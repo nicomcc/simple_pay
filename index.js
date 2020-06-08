@@ -45,9 +45,18 @@ app.get('/', (req, res) => {
 
 app.get('/wallet', (req, res) => {
   if (req.isAuthenticated()) {
+    const debitTransactions = req.user.transactions.filter((transaction) => {
+      return transaction.paytype === 'debit_card';
+    });
+    const creditTransactions = req.user.transactions.filter((transaction) => {
+      return transaction.paytype === 'credit_card';
+    });
+
     res.render('wallet', {
       firstName: req.user.firstname,
       walletcash: req.user.wallet,
+      debittransactions: debitTransactions,
+      credittransactions: creditTransactions,
     });
   } else {
     res.redirect('/login');
@@ -70,20 +79,22 @@ app.post('/payment', (req, res) => {
     if (err) res.render('payment', { paymentError: err });
     else if (!foundUser) {
       res.render('payment', { paymentError: 'Username not found!' });
-    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) { // check if info matchs
+      // check if info matchs
+    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
       foundUser.transactions.push({
         cardholder: holdername,
         description: transdescription,
         cvc: cvcnumber,
         amount,
         paydate: date.getDate(),
+        receivedate: (inlineRadioOptions === 'debit') ? date.addDays(date.getDate(), 0) : date.addDays(date.getDate(), 30),
         expiredate: `${ccexpmo}/${ccexpyr}`,
         cardnumberfinal: creditnumber.substring(creditnumber.length - 4, creditnumber.length),
         paytype: (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card',
       });
 
-      if (inlineRadioOptions === 'debit') { // adds value to wallet if pay method is debit
-        foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount);
+      if (inlineRadioOptions === 'debit') { // adds value to wallet if pay method is debit, 3% taxes
+        foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
       }
       foundUser.save((error) => {
         if (!error) res.redirect('/paymentsuccesfull');
@@ -158,4 +169,5 @@ app.post('/register', (req, res) => {
   });
 });
 
-app.listen(3000, () => { console.log('Server started on port 3000'); });
+app.listen(3000, () => { console.log('Server started on port 3000');
+});

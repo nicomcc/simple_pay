@@ -8,6 +8,7 @@ const transactionSchema = new mongoose.Schema({
   amount: Number,
   paytype: String,
   paydate: String,
+  receivedate: String,
   expiredate: String,
 });
 
