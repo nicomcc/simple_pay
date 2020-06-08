@@ -52,12 +52,8 @@ app.get('/wallet', (req, res) => {
   }
 });
 
-app.get('/deposit', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.render('deposit', { firstName: req.user.firstname });
-  } else {
-    res.redirect('/login');
-  }
+app.get('/payment', (req, res) => {
+  res.render('payment');
 });
 
 app.get('/transfer', (req, res) => {
