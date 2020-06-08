@@ -70,7 +70,7 @@ app.post('/payment', (req, res) => {
     if (err) res.render('payment', { paymentError: err });
     else if (!foundUser) {
       res.render('payment', { paymentError: 'Username not found!' });
-    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
+    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) { // check if info matchs
       foundUser.transactions.push({
         cardholder: holdername,
         description: transdescription,
@@ -81,6 +81,10 @@ app.post('/payment', (req, res) => {
         cardnumberfinal: creditnumber.substring(creditnumber.length - 4, creditnumber.length),
         paytype: (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card',
       });
+
+      if (inlineRadioOptions === 'debit') { // adds value to wallet if pay method is debit
+        foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount);
+      }
       foundUser.save((error) => {
         if (!error) res.redirect('/paymentsuccesfull');
         else res.render('payment', { paymentError: error });
