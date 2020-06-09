@@ -72,7 +72,7 @@ app.post('/payment', (req, res) => {
   const lastname = _.capitalize(req.body.lastname);
   const {
     username, transdescription, amount,
-    inlineRadioOptions, holdername, creditnumber, ccexpmo, ccexpyr, cvcnumber,
+    inlineRadioOptions, holdername, creditnumber, ccexpmo, ccexpyr,
   } = req.body;
 
   User.findOne({ username }, (err, foundUser) => {
@@ -84,10 +84,9 @@ app.post('/payment', (req, res) => {
       foundUser.transactions.push({
         cardholder: holdername,
         description: transdescription,
-        cvc: cvcnumber,
         amount,
         paydate: date.getDate(),
-        receivedate: (inlineRadioOptions === 'debit') ? date.addDays(date.getDate(), 0) : date.addDays(date.getDate(), 30),
+        receivedate: (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.addDays(date.getDate(), 0),
         expiredate: `${ccexpmo}/${ccexpyr}`,
         cardnumberfinal: creditnumber.substring(creditnumber.length - 4, creditnumber.length),
         paytype: (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card',
