@@ -43,6 +43,49 @@ app.get('/', (req, res) => {
   }
 });
 
+app.get('/login', (req, res) => {
+  res.render('login', { loginError: '' });
+});
+
+app.post('/login', (req, res) => {
+  const newuser = new User({
+    username: req.body.username,
+    password: req.body.password,
+  });
+  passport.authenticate('local', (err, user) => {
+    if (!user) { return res.render('login', { loginError: 'Invalid Credentials' }); }
+    req.logIn(newuser, (error) => {
+      if (error) { return res.render('login', { loginError: error }); }
+      return res.redirect('wallet');
+    });
+  })(req, res);
+});
+
+app.get('/logout', (req, res) => {
+  req.logout();
+  res.redirect('/');
+});
+
+app.get('/register', (req, res) => {
+  res.render('register', { registerError: '' });
+});
+
+app.post('/register', (req, res) => {
+  const firstname = _.capitalize(req.body.firstname);
+  const lastname = _.capitalize(req.body.lastname);
+  const { username } = req.body;
+
+  User.register({ username, firstname, lastname }, req.body.password, (err, user) => {
+    if (err) {
+      res.render('register', { registerError: err });
+    } else {
+      passport.authenticate('local')(req, res, () => {
+        res.redirect('wallet');
+      });
+    }
+  });
+});
+
 app.get('/wallet', (req, res) => {
   if (req.isAuthenticated()) {
     const debitTransactions = req.user.transactions.filter((transaction) => {
@@ -117,6 +160,15 @@ app.get('/transfer', (req, res) => {
   }
 });
 
+
+app.get('/transaction', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render('transaction', { firstName: req.user.firstname, payments: req.user.payments });
+  } else {
+    res.redirect('/login');
+  }
+});
+
 app.post('/transfer', (req, res) => {
   const firstname = _.capitalize(req.body.firstname);
   const lastname = _.capitalize(req.body.lastname);
@@ -127,7 +179,9 @@ app.post('/transfer', (req, res) => {
   const paymentObject = {
     transdescription, username, firstname, lastname, amount
   };
-
+  const transactionObject = {
+    username, description: transdescription, amount, paydate: date.getDate(),
+  };
   User.findOne({ username }, (err, foundUser) => {
     if (err) res.render('transfer', { firstName: req.user.firstname, paymentError: err, cardpayment: false });
     // check if user is registered
@@ -139,20 +193,16 @@ app.post('/transfer', (req, res) => {
       User.findOne({ username: req.user.username }, (errors, selfUser) => {
         if (creditnumber == null) { // Transfer Payment
           if (selfUser.wallet >= amount) { // if wallet fund is enough
-            foundUser.transactions.push({
-              username: req.body.username,
-              description: transdescription,
-              amount,
-              paydate: date.getDate(),
-              receivedate: date.getDate(),
-              paytype: 'wallet_transfer',
-            });
+            transactionObject.receivedate = date.getDate();
+            transactionObject.paytype = 'wallet_transfer';
+            foundUser.transactions.push(transactionObject);
+            // updates wallet fund
             selfUser.wallet = parseFloat(selfUser.wallet) - parseFloat(amount);
             foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount);
-            paymentObject.paytype = 'wallet_transfer';
             foundUser.save((error) => {
               if (error) res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
             });
+            paymentObject.paytype = 'wallet_transfer';
             paymentObject.paydate = date.getDate();
             paymentObject.description = transdescription;
             selfUser.payments.push(paymentObject);
@@ -204,58 +254,6 @@ app.post('/transfer-paymethod', (req, res) => {
   } else {
     res.render('transfer', { firstName: req.user.firstname, paymentError: '', cardpayment: false });
   }
-});
-
-
-app.get('/transaction', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.render('transaction', { firstName: req.user.firstname, payments: req.user.payments });
-  } else {
-    res.redirect('/login');
-  }
-});
-
-app.get('/login', (req, res) => {
-  res.render('login', { loginError: '' });
-});
-
-app.post('/login', (req, res) => {
-  const newuser = new User({
-    username: req.body.username,
-    password: req.body.password,
-  });
-  passport.authenticate('local', (err, user) => {
-    if (!user) { return res.render('login', { loginError: 'Invalid Credentials' }); }
-    req.logIn(newuser, (error) => {
-      if (error) { return res.render('login', { loginError: error }); }
-      return res.redirect('wallet');
-    });
-  })(req, res);
-});
-
-app.get('/logout', (req, res) => {
-  req.logout();
-  res.redirect('/');
-});
-
-app.get('/register', (req, res) => {
-  res.render('register', { registerError: '' });
-});
-
-app.post('/register', (req, res) => {
-  const firstname = _.capitalize(req.body.firstname);
-  const lastname = _.capitalize(req.body.lastname);
-  const { username } = req.body;
-
-  User.register({ username, firstname, lastname }, req.body.password, (err, user) => {
-    if (err) {
-      res.render('register', { registerError: err });
-    } else {
-      passport.authenticate('local')(req, res, () => {
-        res.redirect('wallet');
-      });
-    }
-  });
 });
 
 app.listen(3000, () => { console.log('Server started on port 3000');
