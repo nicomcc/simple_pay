@@ -23,7 +23,7 @@
         <th scope="col">Card Owner</th>
         <th scope="col">Card Number</th>
         <th scope="col">Amount</th>
-        <th scope="col">Fee (3%)</th>
+        <th scope="col">Fees</th>
         <th scope="col">Total</th>
       </tr>
     </thead>
@@ -34,10 +34,26 @@
         <td><%= transaction.description %></td>
         <td><%= transaction.paytype %></td>
         <td><%= transaction.cardholder %></td>
+        <% if (transaction.cardnumberfinal != null) { %>
         <td>****<%= transaction.cardnumberfinal %></td>
+        <% } else {%>
+        <td></td>
+        <% } %>
         <td>R$ <%= transaction.amount.toFixed(2) %></td>
-        <td>R$ <%= (transaction.amount * 0.03).toFixed(2) %></td>
-        <td>R$ <%= (transaction.amount * 0.97).toFixed(2) %></td>
+        <td>R$
+          <% if (transaction.paytype === 'debit_card') { %>
+          <%= (transaction.amount * 0.03).toFixed(2) %>
+          <% } else {%>
+          0.00
+          <% } %>
+        </td>
+        <td>R$
+          <% if (transaction.paytype === 'debit_card') { %>
+          <%= (transaction.amount * 0.97).toFixed(2) %>
+          <% } else {%>
+          <%= (transaction.amount).toFixed(2) %>
+          <% } %>
+        </td>
       </tr>
       <% }); %>
     </tbody>

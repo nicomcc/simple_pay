@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
 app.get('/wallet', (req, res) => {
   if (req.isAuthenticated()) {
     const debitTransactions = req.user.transactions.filter((transaction) => {
-      return transaction.paytype === 'debit_card';
+      return (transaction.paytype === 'debit_card' || transaction.paytype === 'wallet_transfer');
     });
     const creditTransactions = req.user.transactions.filter((transaction) => {
       return transaction.paytype === 'credit_card';
@@ -111,15 +111,105 @@ app.get('/paymentsuccesfull', (req, res) => {
 
 app.get('/transfer', (req, res) => {
   if (req.isAuthenticated()) {
-    res.render('transfer', { firstName: req.user.firstname });
+    res.render('transfer', { firstName: req.user.firstname, paymentError: '', cardpayment: false });
   } else {
     res.redirect('/login');
   }
 });
 
+app.post('/transfer', (req, res) => {
+  const firstname = _.capitalize(req.body.firstname);
+  const lastname = _.capitalize(req.body.lastname);
+  const {
+    username, transdescription, amount,
+    inlineRadioOptions, holdername, creditnumber, ccexpmo, ccexpyr,
+  } = req.body;
+  const paymentObject = {
+    transdescription, username, firstname, lastname, amount
+  };
+
+  User.findOne({ username }, (err, foundUser) => {
+    if (err) res.render('transfer', { firstName: req.user.firstname, paymentError: err, cardpayment: false });
+    // check if user is registered
+    else if (!foundUser) {
+      res.render('transfer', { firstName: req.user.firstname, paymentError: 'User not found', cardpayment: false });
+      // check if info matchs
+    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
+      // check payment method if user is found and info matches
+      User.findOne({ username: req.user.username }, (errors, selfUser) => {
+        if (creditnumber == null) { // Transfer Payment
+          if (selfUser.wallet >= amount) { // if wallet fund is enough
+            foundUser.transactions.push({
+              username: req.body.username,
+              description: transdescription,
+              amount,
+              paydate: date.getDate(),
+              receivedate: date.getDate(),
+              paytype: 'wallet_transfer',
+            });
+            selfUser.wallet = parseFloat(selfUser.wallet) - parseFloat(amount);
+            foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount);
+            paymentObject.paytype = 'wallet_transfer';
+            foundUser.save((error) => {
+              if (error) res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+            });
+            paymentObject.paydate = date.getDate();
+            paymentObject.description = transdescription;
+            selfUser.payments.push(paymentObject);
+            selfUser.save((error) => {
+              if (!error) res.redirect('/paymentsuccesfull');
+              else res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+            });
+          } else { // if wallet fund is not enought
+            res.render('transfer', { firstName: req.user.firstname, paymentError: 'Wallet fund is not enough!', cardpayment: false });
+          }
+
+        } else { // Card Payment
+          foundUser.transactions.push({
+            username: req.body.username,
+            cardholder: holdername,
+            description: transdescription,
+            amount,
+            paydate: date.getDate(),
+            receivedate: (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.addDays(date.getDate(), 0),
+            expiredate: `${ccexpmo}/${ccexpyr}`,
+            cardnumberfinal: creditnumber.substring(creditnumber.length - 4, creditnumber.length),
+            paytype: (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card',
+          });
+          if (inlineRadioOptions === 'debit') { // adds value to wallet if pay method is debit, 3% taxes
+            foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
+          }
+          paymentObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
+          paymentObject.description = transdescription;
+          foundUser.save((error) => {
+            if (error) res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+          });
+          paymentObject.paydate = date.getDate();
+          selfUser.payments.push(paymentObject);
+          selfUser.save((error) => {
+            if (!error) res.redirect('/paymentsuccesfull');
+            else res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+          });
+        }
+      });
+    } else {
+      res.render('transfer', { firstName: req.user.firstname, paymentError: 'User data does not match!', cardpayment: false });
+    }
+  });
+});
+
+app.post('/transfer-paymethod', (req, res) => {
+  if (req.body.paymethod === 'card') {
+    res.render('transfer', { firstName: req.user.firstname, paymentError: '', cardpayment: true });
+  } else {
+    res.render('transfer', { firstName: req.user.firstname, paymentError: '', cardpayment: false });
+  }
+});
+
+
 app.get('/transaction', (req, res) => {
   if (req.isAuthenticated()) {
-    res.render('transaction', { firstName: req.user.firstname });
+    res.render('transaction', { firstName: req.user.firstname, payments: req.user.payments });
   } else {
     res.redirect('/login');
   }
