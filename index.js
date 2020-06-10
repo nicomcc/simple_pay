@@ -8,8 +8,8 @@ const passport = require('passport');
 // const passportLocalMongoose = require('passport-local-mongoose');
 
 const User = require(__dirname + '/src/userschema');
-const transactionSchema = require(__dirname + '/src/transactionSchema')
-const date = require(__dirname + '/src/date.js');
+const date = require(__dirname + '/src/date');
+const simpleDB = require(__dirname + '/src/simpledb');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -96,7 +96,7 @@ app.get('/wallet', (req, res) => {
     });
 
     res.render('wallet', {
-      firstName: req.user.firstname,
+      userName: req.user.username,
       walletcash: req.user.wallet,
       debittransactions: debitTransactions,
       credittransactions: creditTransactions,
@@ -115,8 +115,11 @@ app.post('/payment', (req, res) => {
   const lastname = _.capitalize(req.body.lastname);
   const {
     username, transdescription, amount,
-    inlineRadioOptions, holdername, creditnumber, ccexpmo, ccexpyr,
+    inlineRadioOptions, cardholder, creditnumber, ccexpmo, ccexpyr,
   } = req.body;
+  const transactionObject = {
+    username, cardholder, creditnumber, amount, description: transdescription, paydate: date.getDate(),
+  };
 
   User.findOne({ username }, (err, foundUser) => {
     if (err) res.render('payment', { paymentError: err });
@@ -124,18 +127,15 @@ app.post('/payment', (req, res) => {
       res.render('payment', { paymentError: 'Username not found!' });
       // check if info matchs
     } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
-      foundUser.transactions.push({
-        cardholder: holdername,
-        description: transdescription,
-        amount,
-        paydate: date.getDate(),
-        receivedate: (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.addDays(date.getDate(), 0),
-        expiredate: `${ccexpmo}/${ccexpyr}`,
-        cardnumberfinal: creditnumber.substring(creditnumber.length - 4, creditnumber.length),
-        paytype: (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card',
-      });
-
-      if (inlineRadioOptions === 'debit') { // adds value to wallet if pay method is debit, 3% taxes
+      transactionObject.receivedate = (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.getDate();
+      transactionObject.paystatus = (inlineRadioOptions === 'debit') ? 'paid' : 'waiting_funds';
+      transactionObject.expiredate = `${ccexpmo}/${ccexpyr}`;
+      transactionObject.cardnumberfinal = creditnumber.substring(creditnumber.length - 4,
+        creditnumber.length);
+      transactionObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
+      foundUser.transactions.push(transactionObject);
+      // adds value to wallet if pay method is debit, 3% taxes
+      if (inlineRadioOptions === 'debit') {
         foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
       }
       foundUser.save((error) => {
@@ -154,7 +154,7 @@ app.get('/paymentsuccesfull', (req, res) => {
 
 app.get('/transfer', (req, res) => {
   if (req.isAuthenticated()) {
-    res.render('transfer', { firstName: req.user.firstname, paymentError: '', cardpayment: false });
+    res.render('transfer', { userName: req.user.username, paymentError: '', cardpayment: false });
   } else {
     res.redirect('/login');
   }
@@ -163,7 +163,7 @@ app.get('/transfer', (req, res) => {
 
 app.get('/transaction', (req, res) => {
   if (req.isAuthenticated()) {
-    res.render('transaction', { firstName: req.user.firstname, payments: req.user.payments });
+    res.render('transaction', { userName: req.user.username, payments: req.user.payments });
   } else {
     res.redirect('/login');
   }
@@ -174,19 +174,19 @@ app.post('/transfer', (req, res) => {
   const lastname = _.capitalize(req.body.lastname);
   const {
     username, transdescription, amount,
-    inlineRadioOptions, holdername, creditnumber, ccexpmo, ccexpyr,
+    inlineRadioOptions, cardholder, creditnumber, ccexpmo, ccexpyr,
   } = req.body;
   const paymentObject = {
-    transdescription, username, firstname, lastname, amount
+    description: transdescription, username, firstname, lastname, amount, paydate: date.getDate(),
   };
   const transactionObject = {
-    username, description: transdescription, amount, paydate: date.getDate(),
+    username, cardholder, creditnumber, amount, description: transdescription, paydate: date.getDate(),
   };
   User.findOne({ username }, (err, foundUser) => {
-    if (err) res.render('transfer', { firstName: req.user.firstname, paymentError: err, cardpayment: false });
+    if (err) res.render('transfer', { userName: req.user.username, paymentError: err, cardpayment: false });
     // check if user is registered
     else if (!foundUser) {
-      res.render('transfer', { firstName: req.user.firstname, paymentError: 'User not found', cardpayment: false });
+      res.render('transfer', { userName: req.user.username, paymentError: 'User not found', cardpayment: false });
       // check if info matchs
     } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
       // check payment method if user is found and info matches
@@ -195,64 +195,57 @@ app.post('/transfer', (req, res) => {
           if (selfUser.wallet >= amount) { // if wallet fund is enough
             transactionObject.receivedate = date.getDate();
             transactionObject.paytype = 'wallet_transfer';
+            transactionObject.paystatus = 'paid';
             foundUser.transactions.push(transactionObject);
             // updates wallet fund
             selfUser.wallet = parseFloat(selfUser.wallet) - parseFloat(amount);
             foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount);
             foundUser.save((error) => {
-              if (error) res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+              if (error) res.render('transfer', { userName: req.user.username, paymentError: error, cardpayment: false });
             });
             paymentObject.paytype = 'wallet_transfer';
-            paymentObject.paydate = date.getDate();
-            paymentObject.description = transdescription;
             selfUser.payments.push(paymentObject);
             selfUser.save((error) => {
               if (!error) res.redirect('/paymentsuccesfull');
-              else res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+              else res.render('transfer', { userName: req.user.username, paymentError: error, cardpayment: false });
             });
           } else { // if wallet fund is not enought
-            res.render('transfer', { firstName: req.user.firstname, paymentError: 'Wallet fund is not enough!', cardpayment: false });
+            res.render('transfer', { userName: req.user.username, paymentError: 'Wallet fund is not enough!', cardpayment: false });
           }
-
         } else { // Card Payment
-          foundUser.transactions.push({
-            username: req.body.username,
-            cardholder: holdername,
-            description: transdescription,
-            amount,
-            paydate: date.getDate(),
-            receivedate: (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.addDays(date.getDate(), 0),
-            expiredate: `${ccexpmo}/${ccexpyr}`,
-            cardnumberfinal: creditnumber.substring(creditnumber.length - 4, creditnumber.length),
-            paytype: (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card',
-          });
-          if (inlineRadioOptions === 'debit') { // adds value to wallet if pay method is debit, 3% taxes
+          transactionObject.receivedate = (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.getDate();
+          transactionObject.expiredate = `${ccexpmo}/${ccexpyr}`;
+          transactionObject.cardnumberfinal = creditnumber.substring(creditnumber.length - 4,
+            creditnumber.length);
+          transactionObject.paystatus = (inlineRadioOptions === 'debit') ? 'paid' : 'waiting_funds';
+          transactionObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
+          foundUser.transactions.push(transactionObject);
+          // adds value to wallet if pay method is debit, 3% taxes
+          if (inlineRadioOptions === 'debit') {
             foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
           }
-          paymentObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
-          paymentObject.description = transdescription;
           foundUser.save((error) => {
-            if (error) res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+            if (error) res.render('transfer', { userName: req.user.username, paymentError: error, cardpayment: false });
           });
-          paymentObject.paydate = date.getDate();
+          paymentObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
           selfUser.payments.push(paymentObject);
           selfUser.save((error) => {
             if (!error) res.redirect('/paymentsuccesfull');
-            else res.render('transfer', { firstName: req.user.firstname, paymentError: error, cardpayment: false });
+            else res.render('transfer', { userName: req.user.username, paymentError: error, cardpayment: false });
           });
         }
       });
     } else {
-      res.render('transfer', { firstName: req.user.firstname, paymentError: 'User data does not match!', cardpayment: false });
+      res.render('transfer', { userName: req.user.username, paymentError: 'User data does not match!', cardpayment: false });
     }
   });
 });
 
 app.post('/transfer-paymethod', (req, res) => {
   if (req.body.paymethod === 'card') {
-    res.render('transfer', { firstName: req.user.firstname, paymentError: '', cardpayment: true });
+    res.render('transfer', { userName: req.user.username, paymentError: '', cardpayment: true });
   } else {
-    res.render('transfer', { firstName: req.user.firstname, paymentError: '', cardpayment: false });
+    res.render('transfer', { userName: req.user.username, paymentError: '', cardpayment: false });
   }
 });
 
