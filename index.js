@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const _ = require('lodash');
 const session = require('express-session');
 const passport = require('passport');
+const pagarme = require('pagarme');
 
 const User = require(__dirname + '/src/userschema');
 const date = require(__dirname + '/src/date');
@@ -33,6 +34,7 @@ mongoose.set('useCreateIndex', true);
 passport.use(User.createStrategy());
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
+
 
 app.get('/', (req, res) => {
   if (req.isAuthenticated()) {
@@ -133,7 +135,7 @@ app.get('/transaction', (req, res) => {
 app.post('/payment', (req, res) => {
   const firstname = _.capitalize(req.body.firstname);
   const lastname = _.capitalize(req.body.lastname);
-  const { username } = req.body;
+  const { username, amount, ccexpmo, ccexpyr, cardholder, creditnumber, cvcnumber } = req.body;
 
   User.findOne({ username }, (err, foundUser) => {
     if (err) res.render('payment', { paymentError: err });
@@ -141,12 +143,32 @@ app.post('/payment', (req, res) => {
       res.render('payment', { paymentError: 'Username not found!' });
       // check if info matchs
     } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
-      // updates card transaction info
-      simpleDB.updateCardTransaction(req, res, foundUser);
-      foundUser.save((error) => {
-        if (!error) res.redirect('/paymentsuccesfull');
-        else res.render('payment', { paymentError: error });
-      });
+      // connect with pagarme and create transaction
+      pagarme.client.connect({ api_key: process.env.APIKEY })
+        .then((client) => client.transactions.create({
+          amount: amount * 100,
+          card_number: creditnumber,
+          card_holder_name: cardholder,
+          card_expiration_date: `${ccexpmo}${ccexpyr}`,
+          card_cvv: cvcnumber,
+        })
+        // if payment is approved by pagarme
+          .then((transaction) => {
+            if (transaction.status === 'paid') {
+              // updates card transaction info
+              simpleDB.updateCardTransaction(req, res, foundUser);
+              foundUser.save((error) => {
+                if (!error) res.redirect('/paymentsuccesfull');
+                else res.render('payment', { paymentError: error });
+              });
+              // if card is refused by recused payment
+            } else {
+              res.render('payment', { paymentError: 'Card Refused by Pagarme' });
+            }
+          })
+          // if card is refused for invalid content
+          .catch(() => res.render('payment', { paymentError: 'Card Refused by Pagarme' })));
+    // if firstname or lastname are wrong
     } else {
       res.render('payment', { paymentError: 'User data does not match!' });
     }
@@ -224,5 +246,4 @@ app.post('/transfer-paymethod', (req, res) => {
   }
 });
 
-app.listen(3000, () => { console.log('Server started on port 3000');
-});
+app.listen(3000, () => { console.log('Server started on port 3000'); });

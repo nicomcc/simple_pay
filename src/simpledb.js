@@ -40,5 +40,4 @@ exports.updateCardTransaction = (req, res, foundUser) => {
   if (inlineRadioOptions === 'debit') {
     foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
   }
-
 }
