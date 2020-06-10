@@ -2,6 +2,8 @@
 
 Serviço de pagamento simplificado integrado a API do pagar.me. Possui funcionalidades para pagamento à usuário cadastrado, lista de recebíveis e pagamentos realizados, e transferência interna entre contas.
 
+Deploy para testes: [Simple Pay - Heroku](https://intense-fortress-30981.herokuapp.com/)
+
 ## Iniciando
 
 Essas instruções fornecerão uma cópia do projeto em execução na sua máquina local para fins de desenvolvimento e teste.
@@ -81,7 +83,7 @@ Basta utilizar o comando node index.js ou nodemon index.js
 * Retorna tela de erro das respectivas checagens descritas acima
 * Como esta sessão é integrada a API do pagar.me, é necessário usar um cartão válido para testar transações. É possível utilizar um gerador de número de cartões, ou utilizar o seguinte cartão, sugerido na documentação do pagar.me:
 ```
-Número do cartão: '4111111111111111',
+Número do cartão: 4111111111111111,
 Nome no cartão: Morpheus Fishburne,
 Data de validade: 09/22
 CVV: 123
