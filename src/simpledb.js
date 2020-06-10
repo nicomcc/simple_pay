@@ -1,5 +1,26 @@
-// const mongoose = require('mongoose');
 const User = require(__dirname + '/userschema');
+const date = require(__dirname + '/date');
+
+//check if waiting_funds transactions has reached payment day
+exports.updateReceivables = (username) => {
+  User.findOne({ username }, (err, selfUser) => {
+    selfUser.transactions.forEach((transaction) => {
+      if (transaction.paystatus === 'waiting_funds') {
+        if (date.dateIsPast(date.getDate(), transaction.receivedate)) {
+          transaction.paystatus = 'paid';
+          selfUser.wallet = parseFloat(selfUser.wallet) + parseFloat(transaction.amount * 0.95);
+        }
+      }
+    });
+    selfUser.save((error) => {
+      if (error) console.log(error);
+    });
+  });
+};
+
+
+
+
 
 exports.addClient = (selfUsername, firstname, lastname, username) => {
   const clientObject = { firstname, lastname, username };

@@ -56,6 +56,8 @@ app.post('/login', (req, res) => {
     if (!user) { return res.render('login', { loginError: 'Invalid Credentials' }); }
     req.logIn(newuser, (error) => {
       if (error) { return res.render('login', { loginError: error }); }
+      // check if any waiting_funds transactions has reached payment day on login
+      simpleDB.updateReceivables(req.user.username);
       return res.redirect('wallet');
     });
   })(req, res);
@@ -88,18 +90,18 @@ app.post('/register', (req, res) => {
 
 app.get('/wallet', (req, res) => {
   if (req.isAuthenticated()) {
-    const debitTransactions = req.user.transactions.filter((transaction) => {
-      return (transaction.paytype === 'debit_card' || transaction.paytype === 'wallet_transfer');
+    const receivedTransactions = req.user.transactions.filter((transaction) => {
+      return transaction.paystatus === 'paid';
     });
-    const creditTransactions = req.user.transactions.filter((transaction) => {
-      return transaction.paytype === 'credit_card';
+    const toReceiveTransactions = req.user.transactions.filter((transaction) => {
+      return transaction.paystatus === 'waiting_funds';
     });
 
     res.render('wallet', {
       userName: req.user.username,
       walletcash: req.user.wallet,
-      debittransactions: debitTransactions,
-      credittransactions: creditTransactions,
+      debittransactions: receivedTransactions,
+      credittransactions: toReceiveTransactions,
     });
   } else {
     res.redirect('/login');

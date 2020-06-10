@@ -10,6 +10,7 @@ const transactionSchema = new mongoose.Schema({
   paydate: String,
   receivedate: String,
   expiredate: String,
+  paystatus: String,
 });
 
 module.exports = transactionSchema;
