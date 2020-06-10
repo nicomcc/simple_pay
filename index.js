@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const _ = require('lodash');
 const session = require('express-session');
 const passport = require('passport');
-// const passportLocalMongoose = require('passport-local-mongoose');
 
 const User = require(__dirname + '/src/userschema');
 const date = require(__dirname + '/src/date');
@@ -96,7 +95,6 @@ app.get('/wallet', (req, res) => {
     const toReceiveTransactions = req.user.transactions.filter((transaction) => {
       return transaction.paystatus === 'waiting_funds';
     });
-
     res.render('wallet', {
       userName: req.user.username,
       walletcash: req.user.wallet,
@@ -112,44 +110,6 @@ app.get('/payment', (req, res) => {
   res.render('payment', { paymentError: '' });
 });
 
-app.post('/payment', (req, res) => {
-  const firstname = _.capitalize(req.body.firstname);
-  const lastname = _.capitalize(req.body.lastname);
-  const {
-    username, transdescription, amount,
-    inlineRadioOptions, cardholder, creditnumber, ccexpmo, ccexpyr,
-  } = req.body;
-  const transactionObject = {
-    username, cardholder, creditnumber, amount, description: transdescription, paydate: date.getDate(),
-  };
-
-  User.findOne({ username }, (err, foundUser) => {
-    if (err) res.render('payment', { paymentError: err });
-    else if (!foundUser) {
-      res.render('payment', { paymentError: 'Username not found!' });
-      // check if info matchs
-    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
-      transactionObject.receivedate = (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.getDate();
-      transactionObject.paystatus = (inlineRadioOptions === 'debit') ? 'paid' : 'waiting_funds';
-      transactionObject.expiredate = `${ccexpmo}/${ccexpyr}`;
-      transactionObject.cardnumberfinal = creditnumber.substring(creditnumber.length - 4,
-        creditnumber.length);
-      transactionObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
-      foundUser.transactions.push(transactionObject);
-      // adds value to wallet if pay method is debit, 3% taxes
-      if (inlineRadioOptions === 'debit') {
-        foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
-      }
-      foundUser.save((error) => {
-        if (!error) res.redirect('/paymentsuccesfull');
-        else res.render('payment', { paymentError: error });
-      });
-    } else {
-      res.render('payment', { paymentError: 'User data does not match!' });
-    }
-  });
-});
-
 app.get('/paymentsuccesfull', (req, res) => {
   res.render('paymentsuccesfull');
 });
@@ -162,7 +122,6 @@ app.get('/transfer', (req, res) => {
   }
 });
 
-
 app.get('/transaction', (req, res) => {
   if (req.isAuthenticated()) {
     res.render('transaction', { userName: req.user.username, payments: req.user.payments });
@@ -171,12 +130,34 @@ app.get('/transaction', (req, res) => {
   }
 });
 
+app.post('/payment', (req, res) => {
+  const firstname = _.capitalize(req.body.firstname);
+  const lastname = _.capitalize(req.body.lastname);
+  const { username } = req.body;
+
+  User.findOne({ username }, (err, foundUser) => {
+    if (err) res.render('payment', { paymentError: err });
+    else if (!foundUser) {
+      res.render('payment', { paymentError: 'Username not found!' });
+      // check if info matchs
+    } else if (foundUser.firstname === firstname && foundUser.lastname === lastname) {
+      // updates card transaction info
+      simpleDB.updateCardTransaction(req, res, foundUser);
+      foundUser.save((error) => {
+        if (!error) res.redirect('/paymentsuccesfull');
+        else res.render('payment', { paymentError: error });
+      });
+    } else {
+      res.render('payment', { paymentError: 'User data does not match!' });
+    }
+  });
+});
+
 app.post('/transfer', (req, res) => {
   const firstname = _.capitalize(req.body.firstname);
   const lastname = _.capitalize(req.body.lastname);
   const {
-    username, transdescription, amount,
-    inlineRadioOptions, cardholder, creditnumber, ccexpmo, ccexpyr,
+    username, transdescription, amount, inlineRadioOptions, cardholder, creditnumber
   } = req.body;
   const paymentObject = {
     description: transdescription, username, firstname, lastname, amount, paydate: date.getDate(),
@@ -215,20 +196,12 @@ app.post('/transfer', (req, res) => {
             res.render('transfer', { userName: req.user.username, paymentError: 'Wallet fund is not enough!', cardpayment: false });
           }
         } else { // Card Payment
-          transactionObject.receivedate = (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.getDate();
-          transactionObject.expiredate = `${ccexpmo}/${ccexpyr}`;
-          transactionObject.cardnumberfinal = creditnumber.substring(creditnumber.length - 4,
-            creditnumber.length);
-          transactionObject.paystatus = (inlineRadioOptions === 'debit') ? 'paid' : 'waiting_funds';
-          transactionObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
-          foundUser.transactions.push(transactionObject);
-          // adds value to wallet if pay method is debit, 3% taxes
-          if (inlineRadioOptions === 'debit') {
-            foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
-          }
+          // updates card transaction info
+          simpleDB.updateCardTransaction(req, res, foundUser);
           foundUser.save((error) => {
             if (error) res.render('transfer', { userName: req.user.username, paymentError: error, cardpayment: false });
           });
+
           paymentObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
           selfUser.payments.push(paymentObject);
           selfUser.save((error) => {

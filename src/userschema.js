@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const passportLocalMongoose = require('passport-local-mongoose');
+
 const transactionSchema = require(__dirname + '/transactionSchema');
 const paymentSchema = require(__dirname + '/paymentSchema');
 const clientSchema = require(__dirname + '/clientSchema');

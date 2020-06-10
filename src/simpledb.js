@@ -1,7 +1,7 @@
 const User = require(__dirname + '/userschema');
 const date = require(__dirname + '/date');
 
-//check if waiting_funds transactions has reached payment day
+// check if waiting_funds transactions has reached payment day
 exports.updateReceivables = (username) => {
   User.findOne({ username }, (err, selfUser) => {
     selfUser.transactions.forEach((transaction) => {
@@ -19,46 +19,26 @@ exports.updateReceivables = (username) => {
 };
 
 
+exports.updateCardTransaction = (req, res, foundUser) => {
+  // const firstname = _.capitalize(req.body.firstname);
+  // const lastname = _.capitalize(req.body.lastname);
+  const {
+    username, transdescription, amount,
+    inlineRadioOptions, cardholder, creditnumber, ccexpmo, ccexpyr,
+  } = req.body;
+  const transactionObject = {
+    username, cardholder, creditnumber, amount, description: transdescription, paydate: date.getDate(),
+  };
+  transactionObject.receivedate = (inlineRadioOptions === 'credit') ? date.addDays(date.getDate(), 30) : date.getDate();
+  transactionObject.paystatus = (inlineRadioOptions === 'debit') ? 'paid' : 'waiting_funds';
+  transactionObject.expiredate = `${ccexpmo}/${ccexpyr}`;
+  transactionObject.cardnumberfinal = creditnumber.substring(creditnumber.length - 4,
+    creditnumber.length);
+  transactionObject.paytype = (inlineRadioOptions === 'debit') ? 'debit_card' : 'credit_card';
+  foundUser.transactions.push(transactionObject);
+  // adds value to wallet if pay method is debit, 3% taxes
+  if (inlineRadioOptions === 'debit') {
+    foundUser.wallet = parseFloat(foundUser.wallet) + parseFloat(amount * 0.97);
+  }
 
-
-
-exports.addClient = (selfUsername, firstname, lastname, username) => {
-  const clientObject = { firstname, lastname, username };
-  User.findOne({ selfUsername }, (err, selfUser) => {
-    if (err) console.log(err);
-    else if (!selfUser) console.log('User not found!');
-    else {
-      console.log(clientObject);
-      //selfUser.clients.push(clientObject);
-      selfUser.save((error) => {
-        if (error) console.log(err);
-        console.log(`Username: ${selfUsername}, ClientFirstname: ${firstname},
-            ClientLastname: ${lastname}, ClientUsername: ${username}`);
-      });
-    }
-  });
-};
-
-// code to access client list and add client pages
-// app.get('/clientlist', (req, res) => {
-//   if (req.isAuthenticated()) {
-//     res.render('clientlist', { firstName: req.user.firstname });
-//   } else {
-//     res.redirect('/login');
-//   }
-// });
-//
-// app.get('/addclient', (req, res) => {
-//   if (req.isAuthenticated()) {
-//     res.render('addclient', { firstName: req.user.firstname, clientError: '' });
-//   } else {
-//     res.redirect('/login');
-//   }
-// });
-//
-// app.post('/addclient', (req, res) => {
-//   const firstname = _.capitalize(req.body.firstname);
-//   const lastname = _.capitalize(req.body.lastname);
-//   const { username } = req.body;
-//   simpleDB.addClient(req.user.username, firstname, lastname, username);
-// });
+}

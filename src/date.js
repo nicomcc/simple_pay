@@ -1,5 +1,4 @@
 
-
 function parseDMY(s) {
   const b = s.split(/\D/);
   return new Date(b[2], b[1] - 1, b[0]);
@@ -8,7 +7,7 @@ function parseDMY(s) {
 function formatDMY(d) {
   function z(n) { return (n < 10 ? '0' : '') + n; }
   if (isNaN(+d)) return d.toString();
-  return `${z(d.getDate())}/${ z(d.getMonth() + 1)}/${d.getFullYear()}`;
+  return `${z(d.getDate())}/${z(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
 exports.getDate = () => {
@@ -25,12 +24,12 @@ exports.getDate = () => {
   return `${dd}/${mm}/${yyyy}`;
 };
 
+// compare two dates
 exports.dateIsPast = (d1, d2) => {
   const date1 = parseDMY(d1);
   const date2 = parseDMY(d2);
-
   return (date1 >= date2);
-}
+};
 
 exports.addDays = (s, days) => {
   const d = parseDMY(s);
