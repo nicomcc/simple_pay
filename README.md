@@ -19,7 +19,7 @@ Ações necessárias para que a aplicação possa ser executada:
 
 - Arquivo .env com as variáveis para criptografia e sua API key do pagar.me
 
-**Importante: É necessário trocar para versão de testes dentro da dashboard da API do pagar.me**
+**Importante: É necessário trocar para versão de testes dentro da dashboard da API do pagar.me e desabilitar a opção antifraude.**
 ```
 SECRET=Sua_chave_criptografada.
 APIKEY=sua_apikey
