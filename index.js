@@ -185,7 +185,7 @@ app.post('/transfer', (req, res) => {
     description: transdescription, username, firstname, lastname, amount, paydate: date.getDate(),
   };
   const transactionObject = {
-    username, cardholder, creditnumber, amount, description: transdescription, paydate: date.getDate(),
+    username: req.user.username, cardholder, creditnumber, amount, description: transdescription, paydate: date.getDate(),
   };
   User.findOne({ username }, (err, foundUser) => {
     if (err) res.render('transfer', { userName: req.user.username, paymentError: err, cardpayment: false });
